@@ -1,6 +1,6 @@
 package msg
 
-import "github.com/labstack/echo"
+import "github.com/labstack/echo/v4"
 
 // Predefined serialized error message indicating that an unexpected internal server error occurred.
 var errorInternalError = serialize(errorData{
