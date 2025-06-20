@@ -1,22 +1,67 @@
 package msg
 
-import "github.com/labstack/echo/v4"
+// CustomError sends a custom error response in specified format (JSON or MessagePack).
+// It provides a unified interface for error handling across different web frameworks.
+//
+// Parameters:
+//   - ctx: Context object compatible with various web frameworks (Echo, Gin, Fiber etc.)
+//   - key: Unique error identifier/error code (e.g., "AUTH_REQUIRED", "NOT_FOUND")
+//   - message: Human-readable error description
+//   - format: Optional format specification:
+//     - "json" for JSON response (default)
+//     - "msgpack" for MessagePack binary format
+//
+// Returns:
+//   - error: Returns serialization or sending error if any occurs
+//
+// Behavior:
+// - Automatically sets appropriate Content-Type header
+// - Supports multiple web frameworks through unified interface
+// - Provides consistent error response structure
+// - Defaults to JSON format if none specified
+func CustomError(ctx any, key string, message string, format ...string) (err error) {
+    // Determine response content type
+    contentType := "json" // Default to JSON format
+    if len(format) > 0 {
+        switch format[0] {
+        case "msgpack":
+            contentType = "msgpack"
+        case "json":
+            contentType = "json"
+        default:
+            contentType = format[0] // Allow custom formats
+        }
+    }
 
-// CustomError is a handler function to send a custom error response in JSON format.
-// It accepts a context for the HTTP request, an error key, and an optional message.
-func CustomError(ctx echo.Context, key string, message ...string) error {
+    var (
+        messageJson    []byte // JSON-formatted error response
+        messageMsgpack []byte // MessagePack-formatted error response
+    )
 
-	// Initialize error message as an empty string.
-	errorMessage := ""
+    // Prepare error data structure
+    errData := errorData{
+        Key:     key,     // Set error code/identifier
+        Message: message, // Set error description
+    }
 
-	// If a message is provided, use the first one in the variadic arguments.
-	if len(message) > 0 {
-		errorMessage = message[0]
-	}
+    // Serialize to JSON when:
+    // - JSON explicitly requested, or
+    // - No format specified (default case)
+    if contentType == "json" {
+        messageJson, err = serialize(errData, contentType)
+        if err != nil {
+            return err
+        }
+    }
 
-	// Serialize the error data and return it as a JSON response using JSONBlob.
-	return ctx.JSONBlob(200, serialize(errorData{
-		Key:     key,          // Unique error identifier.
-		Message: errorMessage, // Custom error message.
-	}))
+    // Serialize to MessagePack when explicitly requested
+    if contentType == "msgpack" {
+        messageMsgpack, err = serialize(errData, contentType)
+        if err != nil {
+            return err
+        }
+    }
+
+    // Send prepared response using unified sender
+    return send(ctx, messageJson, messageMsgpack, format...)
 }
