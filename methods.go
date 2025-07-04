@@ -2,6 +2,7 @@ package msg
 
 import (
 	"errors"
+	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/vmihailenco/msgpack/v5"
@@ -27,9 +28,9 @@ type EchoContext interface {
 
 // EchoResponse represents Echo's response writer interface.
 type EchoResponse interface {
-	Header() Header            // Get header setter
-	WriteHeader(int)           // Write status code
-	Write([]byte) (int, error) // Write response body
+	Header() http.Header               // Get header setter
+	WriteHeader(code int)              // Write status code
+	Write(b []byte) (n int, err error) // Write response body
 }
 
 // GinContext represents the Gin framework's request context interface.
